@@ -7,7 +7,7 @@ A super-simple down-to-the-wire "framework" for building websites with shell scr
 
 __author__ = "jahinzee"
 __license__ = "GPLv2"
-__version__ = "1.0"
+__version__ = "1.1"
 __email__ = "jahinzee@outlook.com"
 
 import subprocess, re, os, yaml, sys, tabulate
@@ -85,26 +85,32 @@ class Document:
                 self.raw_text = f.read()
         except FileNotFoundError:
             Errors.raise_error(f"cannot find process or file \"{self.path}\".")
+            
+        self.raw_text = BeautifulSoup(self.raw_text, 'html.parser').prettify()
 
         # POST: raw text and path has been loaded
         
     def parse(self) -> None:
 
         self.snags = []
-        temp = self.raw_text
 
-        soup = BeautifulSoup(temp, 'html.parser')
+        soup = BeautifulSoup(self.raw_text, 'html.parser')
+        temp = self.raw_text
 
         # load snags from doc
         for snag in soup.find_all("snag"):
-
-            self.snags.append(Snag(str(snag).strip(),                                               # raw tag text but without surrounding whitespace
+            
+             self.snags.append(Snag(str(snag).strip(),                                               # raw tag text but without surrounding whitespace
                                    list(dict(sorted(snag.attrs.items())).values()),                 # <snag a="eggs" b="spam"></snag> --> ["eggs", "spam"]
                                    "" if len(snag.contents) == 0 else snag.contents[0].strip()))    # tag contents; empty string if doesn't exist
-
+             
         # find and replace!
         for snag in self.snags:
             temp = temp.replace(snag.raw_text, snag.parse())
+            
+        
+        # final prettification
+        temp = BeautifulSoup(temp, 'html.parser').prettify()
 
         # header?
         header_msg = Settings.get("header_msg")
@@ -114,7 +120,13 @@ class Document:
         return self.processed_text
 
     def debug(self) -> None:
-        print(":::: Snaglist\n" + {s.debug() for s in self.snags})
+        
+        print(f"Filepath: {self.path}")
+        print(":::: Snaglist")
+        for s in self.snags:
+            print(s.debug())
+        
+            
 
 class Workspace:
 
@@ -141,18 +153,24 @@ class Workspace:
         for d in self.docs:
             with open(self.src_dest[d.path], 'w') as out:
                 out.write(d.parse())
+                
+    def debug(self):
+        for d in self.docs:
+            d.debug()
 
 class Errors:
 
-    def raise_common(msg, is_error):
-        prefix = "[FAIL]:" if is_error else "[WARN]:"
+    def raise_common(msg, prefix):
         print(f"{prefix} {msg}", file=sys.stderr)
 
     def raise_warn(msg):
-        Errors.raise_common(msg, False)
+        Errors.raise_common(msg, "WARN:")
+        
+    def raise_info(msg):
+        Errors.raise_common(msg, "INFO:")
 
     def raise_error(msg, errCode=1):
-        Errors.raise_common(msg, True)
+        Errors.raise_common(msg, "ERROR:")
         sys.exit(errCode)
 
 class Debug:
@@ -198,3 +216,4 @@ if __name__ == "__main__":
     
     wsp = Workspace()
     wsp.parse()
+    

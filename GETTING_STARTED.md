@@ -87,18 +87,16 @@ The contents of the tag will be passed onto the script as `stdin`. You can acces
 
 Tag attributes are passed along to scripts as the following:
 
-- The attribute keys must be ordered alphabetically.
+- The attribute keys are first ordered alphabetically.
 - The attribute values are passed as a list of parameters to the script.
-
-> **WARNING:** If the attributes in the tag are not in alphabetical order, the tag will be skipped.
 
 #### Examples
 
-| Tag                                                   | Parameters                    |
-| :---------------------------------------------------- | :---------------------------- |
-| `<snag a="./myScript.py" b="Reader" c="Universe">`    | ./myScript.py Reader Universe |
-| `<snag bad="./myScript" bed="Eggs">`                  | ./myScript Eggs               |
-| `<snag c="./myScript.py" b="Fail">`                   | *(tag will be skipped)*       |
+| Tag                                                   | Parameters                      |
+| :---------------------------------------------------- | :------------------------------ |
+| `<snag a="./myScript.py" b="Reader" c="Universe">`    | `./myScript.py Reader Universe` |
+| `<snag bad="./myScript" bed="Eggs">`                  | `./myScript Eggs`               |
+| `<snag c="./myScript.py" b="Spam">`                   | `Spam ./myScript`               |
 
 ## Step 4: Compile into HTML
 
