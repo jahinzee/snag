@@ -103,9 +103,7 @@ class Document:
              
              parsed = new_s.parse()
              
-             # find and replace!
-             print(f"---\nReplacing:\n---\n{new_s.raw_text}\n---\nWith:\n---\n{parsed}")
-             
+             # find and replace!             
              temp = temp.replace(htmlmin.minify(new_s.raw_text,             # htmlmin used to ensure that whitespace doesn't mess up the find-and-replace
                                                 remove_empty_space=True),
                                  parsed)
