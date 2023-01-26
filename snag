@@ -7,11 +7,12 @@ A super-simple down-to-the-wire "framework" for building websites with shell scr
 
 __author__ = "jahinzee"
 __license__ = "GPLv2"
-__version__ = "1.1"
+__version__ = "1.2"
 __email__ = "jahinzee@outlook.com"
 
 import subprocess, re, os, yaml, sys, tabulate
 from bs4 import BeautifulSoup
+import htmlmin
 
 class Snag:
 
@@ -70,8 +71,6 @@ class Document:
 
     path: str
     raw_text: str
-
-    snags: Snag = []
     processed_text: str
 
     def __init__(self, _path: str) -> str:
@@ -92,21 +91,24 @@ class Document:
         
     def parse(self) -> None:
 
-        self.snags = []
-
         soup = BeautifulSoup(self.raw_text, 'html.parser')
-        temp = self.raw_text
+        temp = htmlmin.minify(self.raw_text, remove_empty_space=True)
 
         # load snags from doc
         for snag in soup.find_all("snag"):
             
-             self.snags.append(Snag(str(snag).strip(),                                               # raw tag text but without surrounding whitespace
-                                   list(dict(sorted(snag.attrs.items())).values()),                 # <snag a="eggs" b="spam"></snag> --> ["eggs", "spam"]
-                                   "" if len(snag.contents) == 0 else snag.contents[0].strip()))    # tag contents; empty string if doesn't exist
+             new_s = Snag(str(snag).strip(),                                               # raw tag text but without surrounding whitespace
+                          list(dict(sorted(snag.attrs.items())).values()),                 # <snag a="eggs" b="spam"></snag> --> ["eggs", "spam"]
+                          "" if len(snag.contents) == 0 else snag.contents[0].strip())     # tag contents; empty string if doesn't exist
              
-        # find and replace!
-        for snag in self.snags:
-            temp = temp.replace(snag.raw_text, snag.parse())
+             parsed = new_s.parse()
+             
+             # find and replace!
+             print(f"---\nReplacing:\n---\n{new_s.raw_text}\n---\nWith:\n---\n{parsed}")
+             
+             temp = temp.replace(htmlmin.minify(new_s.raw_text,             # htmlmin used to ensure that whitespace doesn't mess up the find-and-replace
+                                                remove_empty_space=True),
+                                 parsed)
             
         
         # final prettification
@@ -192,7 +194,7 @@ class Settings:
 
         try:
             with open('snag_settings.yaml', 'r') as file:   
-                settings = (yaml.load(file))["snag"]
+                settings = (yaml.safe_load(file))["snag"]
         except FileNotFoundError:
             Errors.raise_warn(f"could not load setting {key}, using default value.")
             settings = {}
