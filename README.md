@@ -21,6 +21,10 @@ On Fedora 38+, the dependencies can be installed with:
 # dnf install python3-beautifulsoup4 python3-htmlmin
 ```
 
+## Installation
+
+To install, simply copy `snag` into a directory that's listed in PATH. Most Linux distributions have `~/bin` and/or `~/.local/bin` in PATH, so you can copy (or symlink) the script to those directories for a user-level install.
+
 ## Command-line Usage
 
 ```
