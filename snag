@@ -2,7 +2,8 @@
 
 """
 snag
-A super-simple down-to-the-wire "framework" for building websites with shell scripts.
+A super-simple down-to-the-wire "framework" for building
+websites with shell scripts.
 """
 
 __author__ = "jahinzee"
@@ -11,13 +12,13 @@ __version__ = "1.4"
 __email__ = "jahinzee@outlook.com"
 
 import subprocess
-import re
 import os
 import yaml
 import sys
 import glob
 import htmlmin
 from bs4 import BeautifulSoup
+
 
 class Snag:
 
@@ -33,7 +34,7 @@ class Snag:
 
             if not os.access(self.args[0], os.X_OK):
                 os.chmod(self.args[0], 0o700)
-            
+
             proc = subprocess.Popen(self.args,
                                     stdin=subprocess.PIPE,
                                     stdout=subprocess.PIPE, text=True)
@@ -45,17 +46,20 @@ class Snag:
 
         except FileNotFoundError:
             # can't find file
-            Errors.raise_error(f"Cannot find process or file \"{self.args[0]}\".")
+            Errors.raise_error(
+                f"Cannot find process or file \"{self.args[0]}\".")
 
         except PermissionError:
             # permission issue
-            Errors.raise_error(f"You do not have permissions for \"{self.args[0]}\".")
+            Errors.raise_error(
+                f"You do not have permissions for \"{self.args[0]}\".")
 
         # POST: output == output of command from args
         return self.output
 
     def debug(self) -> None:
         pass
+
 
 class Document:
 
@@ -70,11 +74,11 @@ class Document:
                 self.raw_text = f.read()
         except FileNotFoundError:
             Errors.raise_error(f"cannot find process or file \"{self.path}\".")
-            
+
         self.raw_text = BeautifulSoup(self.raw_text, 'html.parser').prettify()
 
         # POST: raw text and path has been loaded
-        
+
     def parse(self) -> None:
 
         soup = BeautifulSoup(self.raw_text, 'html.parser')
@@ -82,43 +86,49 @@ class Document:
 
         # load snags from doc
         for snag in soup.find_all("snag"):
-            
-             new_s = Snag(str(snag).strip(),                                               # raw tag text but without surrounding whitespace
-                          list(dict(sorted(snag.attrs.items())).values()),                 # <snag a="eggs" b="spam"></snag> --> ["eggs", "spam"]
-                          "" if len(snag.contents) == 0 else snag.contents[0].strip())     # tag contents; empty string if doesn't exist
-             
-             parsed = new_s.parse()
-             
-             # find and replace!             
-             temp = temp.replace(htmlmin.minify(new_s.raw_text,             # htmlmin used to ensure that whitespace doesn't mess up the find-and-replace
-                                                remove_empty_space=True),
-                                 parsed)
-            
-        
+
+            # raw tag text but without surrounding whitespace
+            # <snag a="eggs" b="spam"></snag> --> ["eggs", "spam"]
+            new_s = Snag(str(snag).strip(),
+                         list(dict(sorted(snag.attrs.items())).values()),
+                         ""
+                         if len(snag.contents) == 0
+                         else snag.contents[0].strip())
+
+            parsed = new_s.parse()
+
+            # find and replace!
+            # htmlmin used to ensure that whitespace doesn't mess up
+            # the find-and-replace
+            temp = temp.replace(htmlmin.minify(new_s.raw_text,
+                                               remove_empty_space=True),
+                                parsed)
+
         # final prettification
         temp = BeautifulSoup(temp, 'html.parser').prettify()
 
         # header?
         header_msg = Settings.get("header_msg")
-        self.processed_text = (f"<!-- {header_msg} -->\n" if header_msg != "" else "") + temp
+        self.processed_text = (
+            f"<!-- {header_msg} -->\n" if header_msg != "" else "") + temp
 
         # POST: processed_text contains properly swapped tags -> outputs
         return self.processed_text
 
     def debug(self) -> None:
-        
+
         print(f"Filepath: {self.path}")
         print(":::: Snaglist")
         for s in self.snags:
             print(s.debug())
-        
-            
+
 
 class Workspace:
 
     def __init__(self):
-        
-        file_list = [f for f in glob.glob("./**/*", recursive=True) if os.path.isfile(f)]
+
+        file_list = [f for f in glob.glob(
+            "./**/*", recursive=True) if os.path.isfile(f)]
         old_ext = Settings.get("input_ext")
         new_ext = Settings.get("output_ext")
 
@@ -127,7 +137,7 @@ class Workspace:
 
         # load docs and set output extension
         for f in file_list:
-            
+
             if f.lower().endswith(old_ext):
                 self.src_dest[f] = f[:-len(old_ext)] + new_ext
                 self.docs.append(Document(f))
@@ -138,10 +148,11 @@ class Workspace:
         for d in self.docs:
             with open(self.src_dest[d.path], 'w') as out:
                 out.write(d.parse())
-                
+
     def debug(self):
         for d in self.docs:
             d.debug()
+
 
 class Errors:
 
@@ -150,7 +161,7 @@ class Errors:
 
     def raise_warn(msg):
         Errors.raise_common(msg, "WARN:")
-        
+
     def raise_info(msg):
         Errors.raise_common(msg, "INFO:")
 
@@ -158,35 +169,38 @@ class Errors:
         Errors.raise_common(msg, "ERROR:")
         sys.exit(errCode)
 
+
 class Debug:
 
     def print_table(title, t):
         pass
 
+
 class Settings:
 
     _defaults: dict = {
 
-        "input_ext"  : "htsg",
-        "output_ext" : "html",
-        "header_msg" : "autogenerated with snag"
+        "input_ext": "htsg",
+        "output_ext": "html",
+        "header_msg": "autogenerated with snag"
 
     }
-        
+
     def get(key: str):
 
         try:
-            with open('snag_settings.yaml', 'r') as file:   
+            with open('snag_settings.yaml', 'r') as file:
                 settings = (yaml.safe_load(file))["snag"]
         except FileNotFoundError:
-            # Errors.raise_warn(f"could not load setting {key}, using default value.")
             settings = {}
 
         return settings[key] if key in settings else Settings._defaults[key]
 
     def make():
         with open('snag_settings.yaml', 'w') as file:
-            file.write(yaml.dump({ "snag" : Settings._defaults }, allow_unicode=True))
+            file.write(
+                yaml.dump({"snag": Settings._defaults}, allow_unicode=True))
+
 
 if __name__ == "__main__":
 
@@ -198,7 +212,6 @@ if __name__ == "__main__":
         Settings.make()
         print("Created snag_settings.yaml.", file=sys.stderr)
         sys.exit()
-    
+
     wsp = Workspace()
     wsp.parse()
-    
